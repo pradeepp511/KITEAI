@@ -1,0 +1,10 @@
+flask
+kiteconnect
+confluent-kafka
+sqlalchemy
+feast
+mlflow
+lightgbm
+ray[tune]
+fastapi
+pydantic
