@@ -1,0 +1,108 @@
+# Note: Before running this pipeline, ensure you have:
+# 1. Enabled the Cloud Build, Cloud Run, Artifact Registry, and Secret Manager APIs.
+# 2. Created an Artifact Registry repository named 'trading-repo'.
+# 3. Created the necessary secrets in Secret Manager.
+
+steps:
+  # --- CI: Lint and Test ---
+  - name: 'python:3.9-slim'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        pip install -r requirements.txt
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        pytest .
+
+  # --- Build: Auth Service ---
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Auth Service'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/auth-service:$COMMIT_SHA'
+      - '.'
+      - '-f'
+      - 'auth/Dockerfile'
+
+  # --- Push: Auth Service ---
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Auth Service'
+    args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/auth-service:$COMMIT_SHA']
+    waitFor: ['Build Auth Service']
+
+  # --- Deploy: Auth Service ---
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy Auth Service'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'auth-service'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/auth-service:$COMMIT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--update-env-vars=PROJECT_ID=${PROJECT_ID}'
+      - '--set-secrets=KITE_API_KEY=kite-api-key:latest,KITE_API_SECRET=kite-api-secret:latest'
+    waitFor: ['Push Auth Service']
+
+  # --- Build: Execution Service ---
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Execution Service'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/execution-service:$COMMIT_SHA'
+      - '.'
+      - '-f'
+      - 'execution/Dockerfile'
+
+  # --- Push: Execution Service ---
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Execution Service'
+    args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/execution-service:$COMMIT_SHA']
+    waitFor: ['Build Execution Service']
+
+  # --- Deploy: Execution Service ---
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy Execution Service'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'execution-service'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/execution-service:$COMMIT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--set-secrets=VERTEX_AI_PROJECT=vertex-ai-project:latest,VERTEX_AI_REGION=vertex-ai-region:latest,VERTEX_AI_ENDPOINT_ID=vertex-ai-endpoint-id:latest'
+    waitFor: ['Push Execution Service']
+
+  # --- Build: Ingestion Streamer ---
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Ingestion Streamer'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/ingestion-streamer:$COMMIT_SHA'
+      - '.'
+      - '-f'
+      - 'ingestion/Dockerfile'
+
+  # --- Push: Ingestion Streamer ---
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Ingestion Streamer'
+    args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/ingestion-streamer:$COMMIT_SHA']
+    waitFor: ['Build Ingestion Streamer']
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/auth-service:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/execution-service:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/trading-repo/ingestion-streamer:$COMMIT_SHA'
+
+substitutions:
+  _REGION: 'us-central1'

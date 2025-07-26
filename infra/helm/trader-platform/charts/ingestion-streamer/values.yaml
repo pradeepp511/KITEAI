@@ -1,0 +1,12 @@
+# Default values for the ingestion-streamer chart.
+replicaCount: 1
+
+image:
+  repository: ingestion-streamer
+  pullPolicy: IfNotPresent
+  tag: ""
+
+secrets:
+  kiteApiKey: "kite-api-key"
+  kiteApiSecret: "kite-api-secret"
+  projectId: "gcp-project-id"

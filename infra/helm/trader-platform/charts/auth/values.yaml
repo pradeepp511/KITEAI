@@ -1,0 +1,18 @@
+# Default values for the auth chart.
+replicaCount: 1
+
+image:
+  repository: auth-service
+  pullPolicy: IfNotPresent
+  # Overridden by global.imageTag
+  tag: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Defines the names of the secrets to be created by an external secrets operator.
+secrets:
+  kiteApiKey: "kite-api-key"
+  kiteApiSecret: "kite-api-secret"
+  projectId: "gcp-project-id"

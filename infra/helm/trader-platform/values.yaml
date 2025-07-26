@@ -1,0 +1,46 @@
+# Global values for the trader-platform chart.
+# These values can be overridden by the sub-charts.
+
+global:
+  # The image registry to pull images from.
+  imageRegistry: "us-central1-docker.pkg.dev/your-gcp-project-id/trading-repo"
+
+  # Default image tag, can be overridden per service.
+  imageTag: "latest"
+
+  # Configuration for secrets. Assumes the use of an external secrets operator.
+  # The operator will create a Kubernetes Secret named '<release-name>-<chart-name>-secrets'
+  # from the specified Google Secret Manager secrets.
+  secrets:
+    # The name of the Kubernetes secret that the external secrets operator will create.
+    # This is often derived from the release name and chart name.
+    nameOverride: ""
+
+# Default values for the sub-charts.
+# These can be overridden in the parent chart's values.yaml or via --set flags.
+auth:
+  enabled: true
+  image:
+    repository: auth-service
+  secrets:
+    kiteApiKey: "kite-api-key"
+    kiteApiSecret: "kite-api-secret"
+    projectId: "gcp-project-id"
+
+ingestion-streamer:
+  enabled: true
+  image:
+    repository: ingestion-streamer
+  secrets:
+    kiteApiKey: "kite-api-key"
+    kiteApiSecret: "kite-api-secret"
+    projectId: "gcp-project-id"
+
+execution-api:
+  enabled: true
+  image:
+    repository: execution-api
+  secrets:
+    vertexAiProject: "vertex-ai-project"
+    vertexAiRegion: "vertex-ai-region"
+    vertexAiEndpointId: "vertex-ai-endpoint-id"

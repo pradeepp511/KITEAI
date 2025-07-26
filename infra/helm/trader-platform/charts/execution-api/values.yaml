@@ -1,0 +1,16 @@
+# Default values for the execution-api chart.
+replicaCount: 1
+
+image:
+  repository: execution-api
+  pullPolicy: IfNotPresent
+  tag: ""
+
+service:
+  type: ClusterIP
+  port: 80
+
+secrets:
+  vertexAiProject: "vertex-ai-project"
+  vertexAiRegion: "vertex-ai-region"
+  vertexAiEndpointId: "vertex-ai-endpoint-id"
